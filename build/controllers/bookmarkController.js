@@ -14,6 +14,7 @@ const createBookmark = async (req, res, next) => {
         return res.status(403).send();
     }
     let newBookmark = req.body;
+    newBookmark.userId = user.userId;
     if (newBookmark.title && newBookmark.url) {
         let created = await bookmark_1.Bookmark.create(newBookmark);
         res.status(201).json(created);
@@ -35,13 +36,20 @@ const getBookmark = async (req, res, next) => {
 };
 exports.getBookmark = getBookmark;
 const updateBookmark = async (req, res, next) => {
-    let bookmarkId = req.params.bookmarkId;
+    let user = await (0, auth_1.verifyUser)(req);
+    if (!user) {
+        return res.status(403).send();
+    }
+    let bookmarkId = req.params.id;
     let newBookmark = req.body;
     let bookmarkFound = await bookmark_1.Bookmark.findByPk(bookmarkId);
-    if (bookmarkFound && bookmarkFound.bookmarkId == newBookmark.bookmarkId
-        && newBookmark.title && newBookmark.url) {
+    if (bookmarkFound &&
+        bookmarkFound.userId == user.userId &&
+        bookmarkFound.bookmarkId == newBookmark.bookmarkId &&
+        newBookmark.title &&
+        newBookmark.url) {
         await bookmark_1.Bookmark.update(newBookmark, {
-            where: { bookmarkId: bookmarkId }
+            where: { bookmarkId: bookmarkId },
         });
         res.status(200).json();
     }
@@ -51,11 +59,15 @@ const updateBookmark = async (req, res, next) => {
 };
 exports.updateBookmark = updateBookmark;
 const deleteBookmark = async (req, res, next) => {
+    let user = await (0, auth_1.verifyUser)(req);
+    if (!user) {
+        return res.status(403).send();
+    }
     let bookmarkId = req.params.id;
     let found = await bookmark_1.Bookmark.findByPk(bookmarkId);
-    if (found) {
+    if (found && found.userId == user.userId) {
         await bookmark_1.Bookmark.destroy({
-            where: { bookmarkId: bookmarkId }
+            where: { bookmarkId: bookmarkId },
         });
         res.status(200).json();
     }
